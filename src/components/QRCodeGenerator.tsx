@@ -105,85 +105,130 @@ const QRCodeDisplay: React.FC<{ token: AccessToken; onSimulateAccess: () => void
   };
 
   return (
-    <div className="max-w-md mx-auto">
-      <Card className="shadow-medical-xl bg-gradient-card">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 p-4 bg-gradient-primary rounded-2xl shadow-medical-glow w-fit">
+    <div className="max-w-lg mx-auto">
+      <Card className="shadow-medical-xl bg-gradient-card overflow-hidden">
+        <CardHeader className="text-center pb-4">
+          <div className="mx-auto mb-6 p-4 bg-gradient-primary rounded-2xl shadow-medical-glow w-fit">
             <QrCode className="w-8 h-8 text-white" />
           </div>
-          <CardTitle>QR Access Token</CardTitle>
-          <CardDescription>Scan with any QR scanner to access medical data</CardDescription>
+          <CardTitle className="text-xl font-bold mb-2">QR Access Token</CardTitle>
+          <CardDescription className="text-sm leading-relaxed px-4">
+            Scan with any QR scanner to access medical data securely
+          </CardDescription>
         </CardHeader>
         
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-8 p-6">
           {/* QR Code Display */}
-          <div className="bg-white p-6 rounded-2xl shadow-medical-md mx-auto w-fit">
+          <div className="bg-white p-8 rounded-3xl shadow-medical-lg mx-auto w-fit border border-gray-100">
             {qrCodeUrl ? (
               <img 
                 src={qrCodeUrl} 
-                alt="QR Code" 
-                className="w-64 h-64 mx-auto"
+                alt="QR Code for medical record access" 
+                className="w-72 h-72 mx-auto block"
               />
             ) : (
-              <div className="w-64 h-64 bg-muted animate-pulse rounded-lg flex items-center justify-center">
-                <QrCode className="w-16 h-16 text-muted-foreground" />
+              <div className="w-72 h-72 bg-muted/20 animate-pulse rounded-2xl flex items-center justify-center">
+                <QrCode className="w-20 h-20 text-muted-foreground" />
               </div>
             )}
           </div>
           
-          {/* Token Details */}
-          <div className="space-y-3">
+          {/* Token ID - Prominent Display */}
+          <div className="text-center py-3">
+            <p className="text-xs font-medium text-muted-foreground mb-2 tracking-wide uppercase">
+              Token ID
+            </p>
+            <Badge variant="outline" className="font-mono text-sm px-4 py-2 bg-muted/30">
+              {token.id}
+            </Badge>
+          </div>
+          
+          {/* Patient & File Information */}
+          <div className="bg-muted/20 rounded-2xl p-6 space-y-6">
             <div className="text-center">
-              <Badge variant="outline" className="font-mono text-xs px-3 py-1">
-                {token.id}
-              </Badge>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Medical Record Details</h3>
             </div>
             
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">File:</span>
-                <p className="font-medium truncate">{token.fileName}</p>
+            {/* File Information */}
+            <div className="space-y-3">
+              <div className="flex justify-between items-start py-2 border-b border-border/30">
+                <span className="text-sm font-medium text-muted-foreground min-w-0 flex-shrink-0 mr-4">
+                  Medical File:
+                </span>
+                <span className="font-semibold text-foreground text-right text-sm leading-relaxed">
+                  {token.fileName}
+                </span>
               </div>
-              <div>
-                <span className="text-muted-foreground">Patient:</span>
-                <p className="font-medium">{token.patientName}</p>
+              
+              <div className="flex justify-between items-center py-2 border-b border-border/30">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Patient Name:
+                </span>
+                <span className="font-semibold text-foreground text-sm">
+                  {token.patientName}
+                </span>
               </div>
-              <div>
-                <span className="text-muted-foreground">Access Level:</span>
-                <Badge className={`text-xs ${getAccessLevelColor(token.accessLevel)}`}>
-                  {token.accessLevel}
+              
+              <div className="flex justify-between items-center py-2 border-b border-border/30">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Access Level:
+                </span>
+                <Badge className={`text-xs font-medium px-3 py-1 ${getAccessLevelColor(token.accessLevel)}`}>
+                  {token.accessLevel.charAt(0).toUpperCase() + token.accessLevel.slice(1)}
                 </Badge>
               </div>
-              <div>
-                <span className="text-muted-foreground">Valid Until:</span>
-                <p className="font-medium text-xs">{new Date(token.validUntil).toLocaleDateString()}</p>
+              
+              <div className="flex justify-between items-center py-2">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Valid Until:
+                </span>
+                <span className="font-semibold text-foreground text-sm">
+                  {new Date(token.validUntil).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </span>
               </div>
             </div>
             
+            {/* Access Status */}
             {token.used && (
-              <div className="text-center p-3 bg-success/10 rounded-lg border border-success/20">
-                <p className="text-success font-medium text-sm">
-                  ✓ Accessed by {token.doctorName} at {token.hospitalName}
-                </p>
+              <div className="mt-6 p-4 bg-success/10 rounded-xl border border-success/20">
+                <div className="text-center">
+                  <div className="inline-flex items-center space-x-2 mb-2">
+                    <div className="w-2 h-2 bg-success rounded-full"></div>
+                    <span className="text-success font-semibold text-sm">Record Accessed</span>
+                  </div>
+                  <p className="text-success text-sm font-medium leading-relaxed">
+                    Accessed by <span className="font-semibold">{token.doctorName}</span>
+                    <br />
+                    at <span className="font-semibold">{token.hospitalName}</span>
+                  </p>
+                </div>
               </div>
             )}
           </div>
           
           {/* Action Buttons */}
-          <div className="flex space-x-2">
-            <Button onClick={downloadQR} variant="outline" className="flex-1">
-              <Download className="w-4 h-4 mr-2" />
-              Download
-            </Button>
-            {navigator.share && (
-              <Button onClick={shareQR} variant="outline" className="flex-1">
-                <Share2 className="w-4 h-4 mr-2" />
-                Share
+          <div className="grid grid-cols-1 gap-3 pt-4">
+            <div className="flex space-x-3">
+              <Button onClick={downloadQR} variant="outline" className="flex-1 h-12">
+                <Download className="w-4 h-4 mr-2" />
+                Download QR
               </Button>
-            )}
-            <Button onClick={onSimulateAccess} className="flex-1 bg-gradient-primary">
+              {navigator.share && (
+                <Button onClick={shareQR} variant="outline" className="flex-1 h-12">
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
+              )}
+            </div>
+            <Button onClick={onSimulateAccess} className="w-full h-12 bg-gradient-primary shadow-medical-glow">
               <Smartphone className="w-4 h-4 mr-2" />
-              Test Scan
+              Simulate Doctor Scan
             </Button>
           </div>
         </CardContent>
