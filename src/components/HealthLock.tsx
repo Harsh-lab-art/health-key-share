@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Shield, Upload, QrCode, Eye, Lock, Clock, User, FileText, Activity, CheckCircle, AlertTriangle, Download, Share2, Smartphone, UserCheck, Cloud } from 'lucide-react';
+import { Shield, Upload, QrCode, Eye, Lock, Clock, User, FileText, Activity, CheckCircle, AlertTriangle, Download, Share2, Smartphone, UserCheck, Cloud, Moon, Sun, Menu } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -51,6 +52,9 @@ const HealthLock = () => {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [selectedFile, setSelectedFile] = useState<HealthFile | null>(null);
   const [accessLevel, setAccessLevel] = useState<'full' | 'partial' | 'read-only'>('full');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  const { theme, setTheme } = useTheme();
 
   // Patient information (would be from user profile in real app)
   const patientInfo = {
@@ -225,29 +229,40 @@ const HealthLock = () => {
 
   return (
     <div className="min-h-screen bg-gradient-bg">
-      {/* Header */}
-      <div className="bg-card border-b border-border shadow-medical-sm">
+      {/* Enhanced Mobile-First Header */}
+      <div className="bg-card/95 backdrop-blur-sm border-b border-border shadow-medical-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
+            {/* Logo and Title */}
             <div className="flex items-center space-x-3">
               <div className="bg-gradient-primary p-2 rounded-xl shadow-medical-glow">
                 <Shield className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">HealthLock</h1>
-                <p className="text-xs text-muted-foreground">Secure Patient Record Sharing</p>
+                <h1 className="text-lg sm:text-xl font-bold text-foreground">HealthLock</h1>
+                <p className="hidden sm:block text-xs text-muted-foreground">Secure Patient Record Sharing</p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
+            {/* Desktop Controls */}
+            <div className="hidden md:flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="p-2"
+              >
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </Button>
+              
               <Select value={userRole} onValueChange={(value: 'patient' | 'doctor' | 'pharmacist') => setUserRole(value)}>
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="patient">Patient View</SelectItem>
-                  <SelectItem value="doctor">Doctor View</SelectItem>
-                  <SelectItem value="pharmacist">Pharmacist View</SelectItem>
+                  <SelectItem value="patient">Patient</SelectItem>
+                  <SelectItem value="doctor">Doctor</SelectItem>
+                  <SelectItem value="pharmacist">Pharmacist</SelectItem>
                 </SelectContent>
               </Select>
               
@@ -256,36 +271,82 @@ const HealthLock = () => {
                 <span className="capitalize font-medium">{userRole}</span>
               </div>
             </div>
+
+            {/* Mobile Controls */}
+            <div className="flex md:hidden items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="p-2"
+              >
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2"
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
+
+          {/* Mobile Menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden py-4 border-t border-border bg-card/95 backdrop-blur-sm animate-fade-in">
+              <div className="space-y-3">
+                <Select value={userRole} onValueChange={(value: 'patient' | 'doctor' | 'pharmacist') => setUserRole(value)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="patient">Patient View</SelectItem>
+                    <SelectItem value="doctor">Doctor View</SelectItem>
+                    <SelectItem value="pharmacist">Pharmacist View</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground py-2">
+                  <User className="w-4 h-4" />
+                  <span className="capitalize font-medium">Logged in as {userRole}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Navigation */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <Tabs value={currentView} onValueChange={setCurrentView} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-card shadow-medical-sm">
-            <TabsTrigger value="dashboard" className="flex items-center space-x-2">
+      {/* Enhanced Mobile-Responsive Navigation */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
+        <Tabs value={currentView} onValueChange={(value) => { setCurrentView(value); setMobileMenuOpen(false); }} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-card/90 backdrop-blur-sm shadow-medical-sm h-auto p-1 gap-1">
+            <TabsTrigger value="dashboard" className="flex items-center justify-center space-x-1 md:space-x-2 py-3 text-xs md:text-sm">
               <Activity className="w-4 h-4" />
-              <span>Dashboard</span>
+              <span className="hidden sm:inline">Dashboard</span>
+              <span className="sm:hidden">Home</span>
             </TabsTrigger>
-            <TabsTrigger value="upload" className="flex items-center space-x-2">
+            <TabsTrigger value="upload" className="flex items-center justify-center space-x-1 md:space-x-2 py-3 text-xs md:text-sm">
               <Upload className="w-4 h-4" />
               <span>Upload</span>
             </TabsTrigger>
-            <TabsTrigger value="tokens" className="flex items-center space-x-2">
+            <TabsTrigger value="tokens" className="flex items-center justify-center space-x-1 md:space-x-2 py-3 text-xs md:text-sm">
               <QrCode className="w-4 h-4" />
-              <span>QR Tokens</span>
+              <span className="hidden sm:inline">QR Tokens</span>
+              <span className="sm:hidden">QR</span>
             </TabsTrigger>
-            <TabsTrigger value="audit" className="flex items-center space-x-2">
+            <TabsTrigger value="audit" className="flex items-center justify-center space-x-1 md:space-x-2 py-3 text-xs md:text-sm">
               <Clock className="w-4 h-4" />
-              <span>Audit Logs</span>
+              <span className="hidden sm:inline">Audit Logs</span>
+              <span className="sm:hidden">Logs</span>
             </TabsTrigger>
           </TabsList>
 
           {/* Dashboard Content */}
-          <TabsContent value="dashboard" className="space-y-6 mt-6">
+          <TabsContent value="dashboard" className="space-y-4 md:space-y-6 mt-4 md:mt-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
               <Card className="bg-gradient-card shadow-medical-md hover:shadow-medical-lg transition-all duration-300">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Records</CardTitle>
@@ -332,38 +393,38 @@ const HealthLock = () => {
             </div>
 
             {/* Recent Files and Quick Actions */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
               <div className="lg:col-span-2">
                 <Card className="shadow-medical-lg">
                   <CardHeader>
                     <CardTitle>Recent Health Records</CardTitle>
                     <CardDescription>Your latest medical documents</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {uploadedFiles.slice(0, 5).map(file => (
-                        <div key={file.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center space-x-3">
-                            <div className={`p-2 rounded-lg border ${getCategoryColor(file.category)}`}>
-                              {getCategoryIcon(file.category)}
-                            </div>
-                            <div>
-                              <p className="font-medium text-foreground">{file.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {formatFileSize(file.size)} • {formatDate(file.uploadDate)}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Lock className="w-4 h-4 text-success" />
-                            <Badge variant="secondary" className="text-success-foreground bg-success/10">
-                              Encrypted
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
+                   <CardContent>
+                     <div className="space-y-3 md:space-y-4">
+                       {uploadedFiles.slice(0, 5).map(file => (
+                         <div key={file.id} className="flex items-center justify-between p-3 md:p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
+                           <div className="flex items-center space-x-2 md:space-x-3 min-w-0 flex-1">
+                             <div className={`p-1.5 md:p-2 rounded-lg border ${getCategoryColor(file.category)} flex-shrink-0`}>
+                               {getCategoryIcon(file.category)}
+                             </div>
+                             <div className="min-w-0 flex-1">
+                               <p className="font-medium text-foreground text-sm md:text-base truncate">{file.name}</p>
+                               <p className="text-xs md:text-sm text-muted-foreground">
+                                 {formatFileSize(file.size)} • {new Date(file.uploadDate).toLocaleDateString()}
+                               </p>
+                             </div>
+                           </div>
+                           <div className="flex items-center space-x-1 md:space-x-2 flex-shrink-0 ml-2">
+                             <Lock className="w-3 h-3 md:w-4 md:h-4 text-success" />
+                             <Badge variant="secondary" className="text-success-foreground bg-success/10 text-xs px-2 py-0.5">
+                               Encrypted
+                             </Badge>
+                           </div>
+                         </div>
+                       ))}
+                     </div>
+                   </CardContent>
                 </Card>
               </div>
 
@@ -403,7 +464,7 @@ const HealthLock = () => {
           </TabsContent>
 
           {/* Upload Content */}
-          <TabsContent value="upload" className="mt-6">
+          <TabsContent value="upload" className="mt-4 md:mt-6">
             <FileUpload 
               onFileUpload={handleFileUpload}
               uploadedFiles={uploadedFiles}
@@ -415,7 +476,7 @@ const HealthLock = () => {
           </TabsContent>
 
           {/* Tokens Content */}
-          <TabsContent value="tokens" className="mt-6">
+          <TabsContent value="tokens" className="mt-4 md:mt-6">
             <QRCodeGenerator
               uploadedFiles={uploadedFiles}
               selectedFile={selectedFile}
@@ -430,7 +491,7 @@ const HealthLock = () => {
           </TabsContent>
 
           {/* Audit Content */}
-          <TabsContent value="audit" className="mt-6">
+          <TabsContent value="audit" className="mt-4 md:mt-6">
             <AuditLogs auditLogs={auditLogs} formatDate={formatDate} />
           </TabsContent>
         </Tabs>
