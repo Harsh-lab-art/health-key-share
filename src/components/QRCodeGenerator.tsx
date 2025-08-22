@@ -28,20 +28,6 @@ interface AccessToken {
   patientName: string;
   doctorName?: string;
   hospitalName?: string;
-  appointment?: Appointment;
-}
-
-interface Appointment {
-  id: string;
-  patientId: string;
-  patientName: string;
-  doctorId: string;
-  doctorName: string;
-  date: string;
-  time: string;
-  reason: string;
-  status: 'Scheduled' | 'Completed' | 'Cancelled';
-  type: 'Consultation' | 'Follow-up' | 'Emergency' | 'Surgery';
 }
 
 interface QRCodeGeneratorProps {
@@ -50,11 +36,10 @@ interface QRCodeGeneratorProps {
   setSelectedFile: (file: HealthFile | null) => void;
   accessLevel: 'full' | 'partial' | 'read-only';
   setAccessLevel: (level: 'full' | 'partial' | 'read-only') => void;
-  generateQRToken: (file: HealthFile, appointmentId?: string) => AccessToken;
+  generateQRToken: (file: HealthFile) => AccessToken;
   generatedTokens: AccessToken[];
   simulateQRAccess: (token: AccessToken) => void;
   formatDate: (dateString: string) => string;
-  appointments?: Appointment[];
 }
 
 const QRCodeDisplay: React.FC<{ token: AccessToken; onSimulateAccess: () => void }> = ({ token, onSimulateAccess }) => {
@@ -120,30 +105,30 @@ const QRCodeDisplay: React.FC<{ token: AccessToken; onSimulateAccess: () => void
   };
 
   return (
-    <div className="max-w-lg mx-auto px-4">
+    <div className="max-w-lg mx-auto">
       <Card className="shadow-medical-xl bg-gradient-card overflow-hidden">
-        <CardHeader className="text-center pb-4 px-4 md:px-6">
-          <div className="mx-auto mb-4 md:mb-6 p-3 md:p-4 bg-gradient-primary rounded-2xl shadow-medical-glow w-fit">
-            <QrCode className="w-6 h-6 md:w-8 md:h-8 text-white" />
+        <CardHeader className="text-center pb-4">
+          <div className="mx-auto mb-6 p-4 bg-gradient-primary rounded-2xl shadow-medical-glow w-fit">
+            <QrCode className="w-8 h-8 text-white" />
           </div>
-          <CardTitle className="text-lg md:text-xl font-bold mb-2">QR Access Token</CardTitle>
-          <CardDescription className="text-sm leading-relaxed px-2 md:px-4">
+          <CardTitle className="text-xl font-bold mb-2">QR Access Token</CardTitle>
+          <CardDescription className="text-sm leading-relaxed px-4">
             Scan with any QR scanner to access medical data securely
           </CardDescription>
         </CardHeader>
         
-        <CardContent className="space-y-6 md:space-y-8 p-4 md:p-6">
+        <CardContent className="space-y-8 p-6">
           {/* QR Code Display */}
-          <div className="bg-white dark:bg-card p-4 md:p-8 rounded-3xl shadow-medical-lg mx-auto w-fit border border-gray-100 dark:border-border">
+          <div className="bg-white p-8 rounded-3xl shadow-medical-lg mx-auto w-fit border border-gray-100">
             {qrCodeUrl ? (
               <img 
                 src={qrCodeUrl} 
                 alt="QR Code for medical record access" 
-                className="w-48 h-48 md:w-72 md:h-72 mx-auto block"
+                className="w-72 h-72 mx-auto block"
               />
             ) : (
-              <div className="w-48 h-48 md:w-72 md:h-72 bg-muted/20 animate-pulse rounded-2xl flex items-center justify-center">
-                <QrCode className="w-12 h-12 md:w-20 md:h-20 text-muted-foreground" />
+              <div className="w-72 h-72 bg-muted/20 animate-pulse rounded-2xl flex items-center justify-center">
+                <QrCode className="w-20 h-20 text-muted-foreground" />
               </div>
             )}
           </div>
@@ -159,23 +144,23 @@ const QRCodeDisplay: React.FC<{ token: AccessToken; onSimulateAccess: () => void
           </div>
           
           {/* Patient & File Information */}
-          <div className="bg-muted/20 rounded-2xl p-4 md:p-6 space-y-4 md:space-y-6">
+          <div className="bg-muted/20 rounded-2xl p-6 space-y-6">
             <div className="text-center">
-              <h3 className="text-base md:text-lg font-semibold text-foreground mb-3 md:mb-4">Medical Record Details</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Medical Record Details</h3>
             </div>
             
             {/* File Information */}
             <div className="space-y-3">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start py-2 border-b border-border/30 gap-1 sm:gap-4">
-                <span className="text-sm font-medium text-muted-foreground">
+              <div className="flex justify-between items-start py-2 border-b border-border/30">
+                <span className="text-sm font-medium text-muted-foreground min-w-0 flex-shrink-0 mr-4">
                   Medical File:
                 </span>
-                <span className="font-semibold text-foreground text-sm leading-relaxed sm:text-right break-all">
+                <span className="font-semibold text-foreground text-right text-sm leading-relaxed">
                   {token.fileName}
                 </span>
               </div>
               
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-border/30 gap-1 sm:gap-4">
+              <div className="flex justify-between items-center py-2 border-b border-border/30">
                 <span className="text-sm font-medium text-muted-foreground">
                   Patient Name:
                 </span>
@@ -184,16 +169,16 @@ const QRCodeDisplay: React.FC<{ token: AccessToken; onSimulateAccess: () => void
                 </span>
               </div>
               
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-border/30 gap-1 sm:gap-4">
+              <div className="flex justify-between items-center py-2 border-b border-border/30">
                 <span className="text-sm font-medium text-muted-foreground">
                   Access Level:
                 </span>
-                <Badge className={`text-xs font-medium px-3 py-1 w-fit ${getAccessLevelColor(token.accessLevel)}`}>
+                <Badge className={`text-xs font-medium px-3 py-1 ${getAccessLevelColor(token.accessLevel)}`}>
                   {token.accessLevel.charAt(0).toUpperCase() + token.accessLevel.slice(1)}
                 </Badge>
               </div>
               
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 gap-1 sm:gap-4">
+              <div className="flex justify-between items-center py-2">
                 <span className="text-sm font-medium text-muted-foreground">
                   Valid Until:
                 </span>
@@ -209,59 +194,6 @@ const QRCodeDisplay: React.FC<{ token: AccessToken; onSimulateAccess: () => void
               </div>
             </div>
             
-            {/* Appointment Information */}
-            {token.appointment && (
-              <div className="bg-blue/10 rounded-2xl p-4 md:p-6 space-y-4 border border-blue/20">
-                <div className="text-center">
-                  <h3 className="text-base md:text-lg font-semibold text-foreground mb-3 md:mb-4">Appointment Details</h3>
-                </div>
-                
-                <div className="space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-border/30 gap-1 sm:gap-4">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Doctor:
-                    </span>
-                    <span className="font-semibold text-foreground text-sm">
-                      {token.appointment.doctorName}
-                    </span>
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-border/30 gap-1 sm:gap-4">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Date & Day:
-                    </span>
-                    <span className="font-semibold text-foreground text-sm">
-                      {new Date(token.appointment.date).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        weekday: 'long'
-                      })}
-                    </span>
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-border/30 gap-1 sm:gap-4">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Time:
-                    </span>
-                    <span className="font-semibold text-foreground text-sm">
-                      {token.appointment.time}
-                    </span>
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start py-2 gap-1 sm:gap-4">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Type & Reason:
-                    </span>
-                    <div className="text-right">
-                      <div className="font-semibold text-foreground text-sm">{token.appointment.type}</div>
-                      <div className="text-sm text-muted-foreground">{token.appointment.reason}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Access Status */}
             {token.used && (
               <div className="mt-6 p-4 bg-success/10 rounded-xl border border-success/20">
@@ -282,19 +214,19 @@ const QRCodeDisplay: React.FC<{ token: AccessToken; onSimulateAccess: () => void
           
           {/* Action Buttons */}
           <div className="grid grid-cols-1 gap-3 pt-4">
-            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
-              <Button onClick={downloadQR} variant="outline" className="flex-1 h-11 md:h-12">
+            <div className="flex space-x-3">
+              <Button onClick={downloadQR} variant="outline" className="flex-1 h-12">
                 <Download className="w-4 h-4 mr-2" />
                 Download QR
               </Button>
               {navigator.share && (
-                <Button onClick={shareQR} variant="outline" className="flex-1 h-11 md:h-12">
+                <Button onClick={shareQR} variant="outline" className="flex-1 h-12">
                   <Share2 className="w-4 h-4 mr-2" />
                   Share
                 </Button>
               )}
             </div>
-            <Button onClick={onSimulateAccess} className="w-full h-11 md:h-12 bg-gradient-primary shadow-medical-glow">
+            <Button onClick={onSimulateAccess} className="w-full h-12 bg-gradient-primary shadow-medical-glow">
               <Smartphone className="w-4 h-4 mr-2" />
               Simulate Doctor Scan
             </Button>
@@ -314,16 +246,14 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
   generateQRToken,
   generatedTokens,
   simulateQRAccess,
-  formatDate,
-  appointments = []
+  formatDate
 }) => {
   const [showQRDisplay, setShowQRDisplay] = useState(false);
   const [currentToken, setCurrentToken] = useState<AccessToken | null>(null);
-  const [selectedAppointment, setSelectedAppointment] = useState<string>('');
 
   const handleGenerateQR = () => {
     if (selectedFile) {
-      const token = generateQRToken(selectedFile, selectedAppointment || undefined);
+      const token = generateQRToken(selectedFile);
       setCurrentToken(token);
       setShowQRDisplay(true);
     }
@@ -418,29 +348,6 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
                   </Select>
                 </div>
               </div>
-
-              {/* Appointment Selection */}
-              {appointments.length > 0 && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Link to Appointment (Optional)</label>
-                  <Select 
-                    value={selectedAppointment} 
-                    onValueChange={setSelectedAppointment}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an appointment to include details..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">No appointment linked</SelectItem>
-                      {appointments.map(appointment => (
-                        <SelectItem key={appointment.id} value={appointment.id}>
-                          {appointment.doctorName} - {new Date(appointment.date).toLocaleDateString()} at {appointment.time}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
               
               {selectedFile && (
                 <div className="p-4 bg-muted/30 rounded-lg">
