@@ -28,6 +28,20 @@ interface AccessToken {
   patientName: string;
   doctorName?: string;
   hospitalName?: string;
+  appointment?: Appointment;
+}
+
+interface Appointment {
+  id: string;
+  patientId: string;
+  patientName: string;
+  doctorId: string;
+  doctorName: string;
+  date: string;
+  time: string;
+  reason: string;
+  status: 'Scheduled' | 'Completed' | 'Cancelled';
+  type: 'Consultation' | 'Follow-up' | 'Emergency' | 'Surgery';
 }
 
 interface QRCodeGeneratorProps {
@@ -36,10 +50,11 @@ interface QRCodeGeneratorProps {
   setSelectedFile: (file: HealthFile | null) => void;
   accessLevel: 'full' | 'partial' | 'read-only';
   setAccessLevel: (level: 'full' | 'partial' | 'read-only') => void;
-  generateQRToken: (file: HealthFile) => AccessToken;
+  generateQRToken: (file: HealthFile, appointmentId?: string) => AccessToken;
   generatedTokens: AccessToken[];
   simulateQRAccess: (token: AccessToken) => void;
   formatDate: (dateString: string) => string;
+  appointments?: Appointment[];
 }
 
 const QRCodeDisplay: React.FC<{ token: AccessToken; onSimulateAccess: () => void }> = ({ token, onSimulateAccess }) => {
@@ -194,6 +209,59 @@ const QRCodeDisplay: React.FC<{ token: AccessToken; onSimulateAccess: () => void
               </div>
             </div>
             
+            {/* Appointment Information */}
+            {token.appointment && (
+              <div className="bg-blue/10 rounded-2xl p-4 md:p-6 space-y-4 border border-blue/20">
+                <div className="text-center">
+                  <h3 className="text-base md:text-lg font-semibold text-foreground mb-3 md:mb-4">Appointment Details</h3>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-border/30 gap-1 sm:gap-4">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Doctor:
+                    </span>
+                    <span className="font-semibold text-foreground text-sm">
+                      {token.appointment.doctorName}
+                    </span>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-border/30 gap-1 sm:gap-4">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Date & Day:
+                    </span>
+                    <span className="font-semibold text-foreground text-sm">
+                      {new Date(token.appointment.date).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        weekday: 'long'
+                      })}
+                    </span>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-border/30 gap-1 sm:gap-4">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Time:
+                    </span>
+                    <span className="font-semibold text-foreground text-sm">
+                      {token.appointment.time}
+                    </span>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start py-2 gap-1 sm:gap-4">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Type & Reason:
+                    </span>
+                    <div className="text-right">
+                      <div className="font-semibold text-foreground text-sm">{token.appointment.type}</div>
+                      <div className="text-sm text-muted-foreground">{token.appointment.reason}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Access Status */}
             {token.used && (
               <div className="mt-6 p-4 bg-success/10 rounded-xl border border-success/20">
@@ -246,14 +314,16 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
   generateQRToken,
   generatedTokens,
   simulateQRAccess,
-  formatDate
+  formatDate,
+  appointments = []
 }) => {
   const [showQRDisplay, setShowQRDisplay] = useState(false);
   const [currentToken, setCurrentToken] = useState<AccessToken | null>(null);
+  const [selectedAppointment, setSelectedAppointment] = useState<string>('');
 
   const handleGenerateQR = () => {
     if (selectedFile) {
-      const token = generateQRToken(selectedFile);
+      const token = generateQRToken(selectedFile, selectedAppointment || undefined);
       setCurrentToken(token);
       setShowQRDisplay(true);
     }
@@ -348,6 +418,29 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
                   </Select>
                 </div>
               </div>
+
+              {/* Appointment Selection */}
+              {appointments.length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Link to Appointment (Optional)</label>
+                  <Select 
+                    value={selectedAppointment} 
+                    onValueChange={setSelectedAppointment}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an appointment to include details..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No appointment linked</SelectItem>
+                      {appointments.map(appointment => (
+                        <SelectItem key={appointment.id} value={appointment.id}>
+                          {appointment.doctorName} - {new Date(appointment.date).toLocaleDateString()} at {appointment.time}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               
               {selectedFile && (
                 <div className="p-4 bg-muted/30 rounded-lg">

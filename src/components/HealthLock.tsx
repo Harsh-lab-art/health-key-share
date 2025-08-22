@@ -1,14 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Shield, Upload, QrCode, Eye, Lock, Clock, User, FileText, Activity, CheckCircle, AlertTriangle, Download, Share2, Smartphone, UserCheck, Cloud, Moon, Sun, Menu } from 'lucide-react';
-import { useTheme } from 'next-themes';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Shield, Upload, QrCode, Eye, Lock, Clock, User, FileText, Activity, CheckCircle, AlertTriangle, Download, Share2, Smartphone, UserCheck, Menu, X, Moon, Sun, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import QRCodeGenerator from './QRCodeGenerator';
 import FileUpload from './FileUpload';
+import QRCodeGenerator from './QRCodeGenerator';
 import AuditLogs from './AuditLogs';
+import HospitalDashboard from './HospitalDashboard';
+import { useTheme } from 'next-themes';
 
 interface HealthFile {
   id: number;
@@ -18,6 +17,19 @@ interface HealthFile {
   uploadDate: string;
   encrypted: boolean;
   category: 'blood-test' | 'imaging' | 'prescription' | 'report' | 'other';
+}
+
+interface Appointment {
+  id: string;
+  patientId: string;
+  patientName: string;
+  doctorId: string;
+  doctorName: string;
+  date: string;
+  time: string;
+  reason: string;
+  status: 'Scheduled' | 'Completed' | 'Cancelled';
+  type: 'Consultation' | 'Follow-up' | 'Emergency' | 'Surgery';
 }
 
 interface AccessToken {
@@ -32,6 +44,7 @@ interface AccessToken {
   patientName: string;
   doctorName?: string;
   hospitalName?: string;
+  appointment?: Appointment;
 }
 
 interface AuditLog {
@@ -46,41 +59,18 @@ interface AuditLog {
 
 const HealthLock = () => {
   const [currentView, setCurrentView] = useState('dashboard');
-  const [userRole, setUserRole] = useState<'patient' | 'doctor' | 'pharmacist'>('patient');
+  const [userRole, setUserRole] = useState('patient');
   const [uploadedFiles, setUploadedFiles] = useState<HealthFile[]>([]);
   const [generatedTokens, setGeneratedTokens] = useState<AccessToken[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [selectedFile, setSelectedFile] = useState<HealthFile | null>(null);
   const [accessLevel, setAccessLevel] = useState<'full' | 'partial' | 'read-only'>('full');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { theme, setTheme } = useTheme();
 
-  // Patient information (would be from user profile in real app)
-  const patientInfo = {
-    name: 'Dr. Sarah Johnson',
-    id: 'HLK-001',
-    age: 34,
-    bloodType: 'A+',
-    phone: '+1-555-0123',
-    email: 'sarah.johnson@email.com'
-  };
-
-  // Add audit log
-  const addAuditLog = (action: string, details: string, actor: string = userRole) => {
-    const log: AuditLog = {
-      id: Date.now() + Math.random(),
-      timestamp: new Date().toISOString(),
-      action,
-      details,
-      actor,
-      ip: '192.168.1.' + Math.floor(Math.random() * 255),
-      location: 'San Francisco, CA'
-    };
-    setAuditLogs(prev => [log, ...prev]);
-  };
-
-  // Handle file upload
+  // Simulate file upload
   const handleFileUpload = (files: File[]) => {
     const newFiles: HealthFile[] = files.map(file => ({
       id: Date.now() + Math.random(),
@@ -99,34 +89,34 @@ const HealthLock = () => {
     addAuditLog('File Upload', `Uploaded ${files.length} file(s)`);
   };
 
-  // Generate QR token with comprehensive data
-  const generateQRToken = (file: HealthFile) => {
+  // Generate QR token with appointment details
+  const generateQRToken = (file: HealthFile, appointmentId?: string): AccessToken => {
+    const selectedAppointment = appointmentId ? 
+      appointments.find(apt => apt.id === appointmentId) : null;
+
     const tokenData = {
       tokenId: 'HLK-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
-      patient: {
-        name: patientInfo.name,
-        id: patientInfo.id,
-        age: patientInfo.age,
-        bloodType: patientInfo.bloodType,
-        phone: patientInfo.phone,
-        email: patientInfo.email
-      },
-      file: {
-        id: file.id,
-        name: file.name,
-        category: file.category,
-        uploadDate: file.uploadDate,
-        size: file.size
-      },
-      access: {
-        level: accessLevel,
-        validUntil: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        createdAt: new Date().toISOString()
-      },
-      security: {
-        encrypted: true,
-        checksum: Math.random().toString(36).substr(2, 16)
-      }
+      fileId: file.id,
+      fileName: file.name,
+      fileType: file.type,
+      fileCategory: file.category,
+      accessLevel: accessLevel,
+      patientName: selectedAppointment?.patientName || 'John Doe',
+      validUntil: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      createdAt: new Date().toISOString(),
+      hospitalName: 'General Hospital',
+      securityHash: btoa(Math.random().toString(36)).substring(0, 16),
+      appointment: selectedAppointment ? {
+        id: selectedAppointment.id,
+        patientName: selectedAppointment.patientName,
+        doctorName: selectedAppointment.doctorName,
+        date: selectedAppointment.date,
+        time: selectedAppointment.time,
+        type: selectedAppointment.type,
+        reason: selectedAppointment.reason,
+        status: selectedAppointment.status,
+        dayOfWeek: new Date(selectedAppointment.date).toLocaleDateString('en-US', { weekday: 'long' })
+      } : null
     };
 
     const token: AccessToken = {
@@ -134,13 +124,13 @@ const HealthLock = () => {
       fileId: file.id,
       fileName: file.name,
       accessLevel: accessLevel,
-      validUntil: tokenData.access.validUntil,
+      validUntil: tokenData.validUntil,
       qrData: JSON.stringify(tokenData),
-      createdAt: tokenData.access.createdAt,
+      createdAt: tokenData.createdAt,
       used: false,
-      patientName: patientInfo.name,
-      doctorName: undefined,
-      hospitalName: undefined
+      patientName: tokenData.patientName,
+      hospitalName: tokenData.hospitalName,
+      appointment: selectedAppointment
     };
     
     setGeneratedTokens(prev => [...prev, token]);
@@ -160,7 +150,21 @@ const HealthLock = () => {
     addAuditLog('Record Access', `Dr. Michael Chen accessed ${token.fileName} via QR token ${token.id}`, 'doctor');
   };
 
-  // Initialize sample data
+  // Add audit log
+  const addAuditLog = (action: string, details: string, actor: string = userRole) => {
+    const log: AuditLog = {
+      id: Date.now() + Math.random(),
+      timestamp: new Date().toISOString(),
+      action,
+      details,
+      actor,
+      ip: '192.168.1.' + Math.floor(Math.random() * 255),
+      location: 'San Francisco, CA'
+    };
+    setAuditLogs(prev => [log, ...prev]);
+  };
+
+  // Sample data for demo
   useEffect(() => {
     if (uploadedFiles.length === 0) {
       setUploadedFiles([
@@ -186,14 +190,43 @@ const HealthLock = () => {
           id: 3,
           name: 'Prescription_Antibiotics.pdf',
           type: 'application/pdf',
-          size: 125000,
-          uploadDate: '2024-08-18T09:45:00Z',
+          size: 128640,
+          uploadDate: '2024-08-21T16:45:00Z',
           encrypted: true,
           category: 'prescription'
         }
       ]);
     }
-  }, [uploadedFiles.length]);
+
+    if (appointments.length === 0) {
+      setAppointments([
+        {
+          id: 'A001',
+          patientId: 'P001',
+          patientName: 'John Doe',
+          doctorId: 'D001',
+          doctorName: 'Dr. Sarah Johnson',
+          date: '2024-08-25',
+          time: '10:30 AM',
+          reason: 'Routine cardiac checkup',
+          status: 'Scheduled',
+          type: 'Consultation'
+        },
+        {
+          id: 'A002',
+          patientId: 'P001',
+          patientName: 'John Doe',
+          doctorId: 'D002',
+          doctorName: 'Dr. Michael Brown',
+          date: '2024-08-26',
+          time: '2:00 PM',
+          reason: 'Neurological assessment',
+          status: 'Scheduled',
+          type: 'Follow-up'
+        }
+      ]);
+    }
+  }, [uploadedFiles.length, appointments.length]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -203,34 +236,30 @@ const HealthLock = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleString();
-  };
-
   const getCategoryIcon = (category: string) => {
-    switch(category) {
-      case 'blood-test': return <Activity className="w-4 h-4" />;
-      case 'imaging': return <Eye className="w-4 h-4" />;
-      case 'prescription': return <FileText className="w-4 h-4" />;
-      case 'report': return <FileText className="w-4 h-4" />;
-      default: return <FileText className="w-4 h-4" />;
+    switch (category) {
+      case 'blood-test': return <Activity className="w-5 h-5 text-red-500" />;
+      case 'imaging': return <Eye className="w-5 h-5 text-blue-500" />;
+      case 'prescription': return <Pill className="w-5 h-5 text-green-500" />;
+      case 'report': return <FileText className="w-5 h-5 text-purple-500" />;
+      default: return <FileText className="w-5 h-5 text-gray-500" />;
     }
   };
 
   const getCategoryColor = (category: string) => {
-    switch(category) {
-      case 'blood-test': return 'bg-red-100 text-red-700 border-red-200';
-      case 'imaging': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'prescription': return 'bg-green-100 text-green-700 border-green-200';
-      case 'report': return 'bg-purple-100 text-purple-700 border-purple-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+    switch (category) {
+      case 'blood-test': return 'bg-red-100 text-red-800 border-red-200';
+      case 'imaging': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'prescription': return 'bg-green-100 text-green-800 border-green-200';
+      case 'report': return 'bg-purple-100 text-purple-800 border-purple-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-bg">
-      {/* Enhanced Mobile-First Header */}
-      <div className="bg-card/95 backdrop-blur-sm border-b border-border shadow-medical-sm sticky top-0 z-50">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="bg-card/80 backdrop-blur-lg border-b border-border shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo and Title */}
@@ -238,9 +267,9 @@ const HealthLock = () => {
               <div className="bg-gradient-primary p-2 rounded-xl shadow-medical-glow">
                 <Shield className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold text-foreground">HealthLock</h1>
-                <p className="hidden sm:block text-xs text-muted-foreground">Secure Patient Record Sharing</p>
+              <div className="hidden sm:block">
+                <h1 className="text-xl font-bold text-foreground">HealthLock</h1>
+                <p className="text-xs text-muted-foreground">Secure Patient Record System</p>
               </div>
             </div>
             
@@ -250,63 +279,43 @@ const HealthLock = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="p-2"
+                className="h-9 w-9 p-0"
               >
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </Button>
               
-              <Select value={userRole} onValueChange={(value: 'patient' | 'doctor' | 'pharmacist') => setUserRole(value)}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="patient">Patient</SelectItem>
-                  <SelectItem value="doctor">Doctor</SelectItem>
-                  <SelectItem value="pharmacist">Pharmacist</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg">
                 <User className="w-4 h-4" />
                 <span className="capitalize font-medium">{userRole}</span>
               </div>
             </div>
 
-            {/* Mobile Controls */}
-            <div className="flex md:hidden items-center space-x-2">
+            {/* Mobile Menu Toggle */}
+            <div className="md:hidden">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="p-2"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="h-9 w-9 p-0"
               >
-                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2"
-              >
-                <Menu className="w-5 h-5" />
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </Button>
             </div>
           </div>
 
           {/* Mobile Menu */}
-          {mobileMenuOpen && (
-            <div className="md:hidden py-4 border-t border-border bg-card/95 backdrop-blur-sm animate-fade-in">
-              <div className="space-y-3">
-                <Select value={userRole} onValueChange={(value: 'patient' | 'doctor' | 'pharmacist') => setUserRole(value)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="patient">Patient View</SelectItem>
-                    <SelectItem value="doctor">Doctor View</SelectItem>
-                    <SelectItem value="pharmacist">Pharmacist View</SelectItem>
-                  </SelectContent>
-                </Select>
+          {isMobileMenuOpen && (
+            <div className="md:hidden py-4 border-t border-border animate-fade-in">
+              <div className="space-y-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="w-full justify-start"
+                >
+                  {theme === 'dark' ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
+                  {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                </Button>
                 
                 <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground py-2">
                   <User className="w-4 h-4" />
@@ -318,183 +327,196 @@ const HealthLock = () => {
         </div>
       </div>
 
-      {/* Enhanced Mobile-Responsive Navigation */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
-        <Tabs value={currentView} onValueChange={(value) => { setCurrentView(value); setMobileMenuOpen(false); }} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-card/90 backdrop-blur-sm shadow-medical-sm h-auto p-1 gap-1">
-            <TabsTrigger value="dashboard" className="flex items-center justify-center space-x-1 md:space-x-2 py-3 text-xs md:text-sm">
-              <Activity className="w-4 h-4" />
-              <span className="hidden sm:inline">Dashboard</span>
-              <span className="sm:hidden">Home</span>
-            </TabsTrigger>
-            <TabsTrigger value="upload" className="flex items-center justify-center space-x-1 md:space-x-2 py-3 text-xs md:text-sm">
-              <Upload className="w-4 h-4" />
-              <span>Upload</span>
-            </TabsTrigger>
-            <TabsTrigger value="tokens" className="flex items-center justify-center space-x-1 md:space-x-2 py-3 text-xs md:text-sm">
-              <QrCode className="w-4 h-4" />
-              <span className="hidden sm:inline">QR Tokens</span>
-              <span className="sm:hidden">QR</span>
-            </TabsTrigger>
-            <TabsTrigger value="audit" className="flex items-center justify-center space-x-1 md:space-x-2 py-3 text-xs md:text-sm">
-              <Clock className="w-4 h-4" />
-              <span className="hidden sm:inline">Audit Logs</span>
-              <span className="sm:hidden">Logs</span>
-            </TabsTrigger>
-          </TabsList>
+      {/* Navigation */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex flex-wrap gap-2 bg-card/50 backdrop-blur-sm rounded-xl p-2 shadow-sm">
+          {[
+            { id: 'dashboard', label: 'Dashboard', icon: Activity, color: 'text-blue-500' },
+            { id: 'upload', label: 'Upload Records', icon: Upload, color: 'text-green-500' },
+            { id: 'tokens', label: 'Access Tokens', icon: QrCode, color: 'text-purple-500' },
+            { id: 'audit', label: 'Audit Logs', icon: Clock, color: 'text-orange-500' },
+            { id: 'hospital', label: 'Hospital DB', icon: Database, color: 'text-pink-500' }
+          ].map(tab => (
+            <Button
+              key={tab.id}
+              onClick={() => {
+                setCurrentView(tab.id);
+                setIsMobileMenuOpen(false);
+              }}
+              variant={currentView === tab.id ? "default" : "ghost"}
+              className={`flex items-center space-x-2 px-3 py-2 text-sm transition-all ${
+                currentView === tab.id 
+                  ? 'bg-gradient-primary text-white shadow-medical-glow' 
+                  : `hover:bg-muted/50 ${tab.color}`
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+            </Button>
+          ))}
+        </div>
+      </div>
 
-          {/* Dashboard Content */}
-          <TabsContent value="dashboard" className="space-y-4 md:space-y-6 mt-4 md:mt-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-              <Card className="bg-gradient-card shadow-medical-md hover:shadow-medical-lg transition-all duration-300">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Records</CardTitle>
-                  <FileText className="w-4 h-4 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{uploadedFiles.length}</div>
-                  <p className="text-xs text-muted-foreground">Encrypted & secured</p>
-                </CardContent>
-              </Card>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        {/* Dashboard View */}
+        {currentView === 'dashboard' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="bg-gradient-card shadow-medical-lg hover:shadow-medical-xl transition-all">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Total Records</p>
+                    <p className="text-3xl font-bold text-foreground">{uploadedFiles.length}</p>
+                  </div>
+                  <FileText className="w-8 h-8 text-primary" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-gradient-card shadow-medical-lg hover:shadow-medical-xl transition-all">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Active Tokens</p>
+                    <p className="text-3xl font-bold text-foreground">{generatedTokens.filter(t => !t.used).length}</p>
+                  </div>
+                  <QrCode className="w-8 h-8 text-secondary" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-gradient-card shadow-medical-lg hover:shadow-medical-xl transition-all">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Recent Access</p>
+                    <p className="text-3xl font-bold text-foreground">{generatedTokens.filter(t => t.used).length}</p>
+                  </div>
+                  <Eye className="w-8 h-8 text-accent" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-gradient-card shadow-medical-lg hover:shadow-medical-xl transition-all">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Security Level</p>
+                    <p className="text-3xl font-bold text-success">High</p>
+                  </div>
+                  <Shield className="w-8 h-8 text-success" />
+                </div>
+              </CardContent>
+            </Card>
 
-              <Card className="bg-gradient-card shadow-medical-md hover:shadow-medical-lg transition-all duration-300">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Active Tokens</CardTitle>
-                  <QrCode className="w-4 h-4 text-secondary" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{generatedTokens.filter(t => !t.used).length}</div>
-                  <p className="text-xs text-muted-foreground">Ready for sharing</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-card shadow-medical-md hover:shadow-medical-lg transition-all duration-300">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Recent Access</CardTitle>
-                  <Eye className="w-4 h-4 text-accent" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{generatedTokens.filter(t => t.used).length}</div>
-                  <p className="text-xs text-muted-foreground">Authorized views</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-card shadow-medical-md hover:shadow-medical-lg transition-all duration-300">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Security Level</CardTitle>
-                  <Shield className="w-4 h-4 text-success" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-success">High</div>
-                  <p className="text-xs text-muted-foreground">End-to-end encrypted</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Recent Files and Quick Actions */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-              <div className="lg:col-span-2">
-                <Card className="shadow-medical-lg">
-                  <CardHeader>
-                    <CardTitle>Recent Health Records</CardTitle>
-                    <CardDescription>Your latest medical documents</CardDescription>
-                  </CardHeader>
-                   <CardContent>
-                     <div className="space-y-3 md:space-y-4">
-                       {uploadedFiles.slice(0, 5).map(file => (
-                         <div key={file.id} className="flex items-center justify-between p-3 md:p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
-                           <div className="flex items-center space-x-2 md:space-x-3 min-w-0 flex-1">
-                             <div className={`p-1.5 md:p-2 rounded-lg border ${getCategoryColor(file.category)} flex-shrink-0`}>
-                               {getCategoryIcon(file.category)}
-                             </div>
-                             <div className="min-w-0 flex-1">
-                               <p className="font-medium text-foreground text-sm md:text-base truncate">{file.name}</p>
-                               <p className="text-xs md:text-sm text-muted-foreground">
-                                 {formatFileSize(file.size)} • {new Date(file.uploadDate).toLocaleDateString()}
-                               </p>
-                             </div>
-                           </div>
-                           <div className="flex items-center space-x-1 md:space-x-2 flex-shrink-0 ml-2">
-                             <Lock className="w-3 h-3 md:w-4 md:h-4 text-success" />
-                             <Badge variant="secondary" className="text-success-foreground bg-success/10 text-xs px-2 py-0.5">
-                               Encrypted
-                             </Badge>
-                           </div>
-                         </div>
-                       ))}
-                     </div>
-                   </CardContent>
-                </Card>
+            {/* Recent Files */}
+            <div className="md:col-span-2 lg:col-span-3 bg-gradient-card rounded-xl shadow-medical-lg border border-border/50">
+              <div className="p-6 border-b border-border/30">
+                <h3 className="text-lg font-semibold text-foreground">Recent Health Records</h3>
+                <p className="text-sm text-muted-foreground">Your latest medical documents</p>
               </div>
-
-              <Card className="shadow-medical-lg">
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                  <CardDescription>Common tasks</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button 
-                    onClick={() => setCurrentView('upload')}
-                    className="w-full justify-start bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20"
-                    variant="ghost"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Record
-                  </Button>
-                  <Button 
-                    onClick={() => setCurrentView('tokens')}
-                    className="w-full justify-start bg-secondary/10 text-secondary hover:bg-secondary/20 border border-secondary/20"
-                    variant="ghost"
-                  >
-                    <QrCode className="w-4 h-4 mr-2" />
-                    Generate QR
-                  </Button>
-                  <Button 
-                    onClick={() => setCurrentView('audit')}
-                    className="w-full justify-start bg-accent/10 text-accent hover:bg-accent/20 border border-accent/20"
-                    variant="ghost"
-                  >
-                    <Clock className="w-4 h-4 mr-2" />
-                    View Activity
-                  </Button>
-                </CardContent>
-              </Card>
+              <div className="p-6">
+                <div className="space-y-4">
+                  {uploadedFiles.slice(0, 3).map(file => (
+                    <div key={file.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className="bg-primary/10 p-2 rounded-lg border border-primary/20">
+                          <FileText className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">{file.name}</p>
+                          <p className="text-sm text-muted-foreground">{formatFileSize(file.size)} • {formatDate(file.uploadDate)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Lock className="w-4 h-4 text-success" />
+                        <Badge variant="secondary" className="bg-success/10 text-success">
+                          Encrypted
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </TabsContent>
 
-          {/* Upload Content */}
-          <TabsContent value="upload" className="mt-4 md:mt-6">
-            <FileUpload 
-              onFileUpload={handleFileUpload}
-              uploadedFiles={uploadedFiles}
-              formatFileSize={formatFileSize}
-              formatDate={formatDate}
-              getCategoryIcon={getCategoryIcon}
-              getCategoryColor={getCategoryColor}
-            />
-          </TabsContent>
+            {/* Quick Actions */}
+            <div className="bg-gradient-card rounded-xl shadow-medical-lg border border-border/50">
+              <div className="p-6 border-b border-border/30">
+                <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
+                <p className="text-sm text-muted-foreground">Common tasks</p>
+              </div>
+              <div className="p-6 space-y-3">
+                <Button 
+                  onClick={() => setCurrentView('upload')}
+                  className="w-full justify-start bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20"
+                  variant="ghost"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Record
+                </Button>
+                <Button 
+                  onClick={() => setCurrentView('tokens')}
+                  className="w-full justify-start bg-secondary/10 text-secondary hover:bg-secondary/20 border border-secondary/20"
+                  variant="ghost"
+                >
+                  <QrCode className="w-4 h-4 mr-2" />
+                  Generate QR
+                </Button>
+                <Button 
+                  onClick={() => setCurrentView('audit')}
+                  className="w-full justify-start bg-accent/10 text-accent hover:bg-accent/20 border border-accent/20"
+                  variant="ghost"
+                >
+                  <Clock className="w-4 h-4 mr-2" />
+                  View Activity
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
-          {/* Tokens Content */}
-          <TabsContent value="tokens" className="mt-4 md:mt-6">
-            <QRCodeGenerator
-              uploadedFiles={uploadedFiles}
-              selectedFile={selectedFile}
-              setSelectedFile={setSelectedFile}
-              accessLevel={accessLevel}
-              setAccessLevel={setAccessLevel}
-              generateQRToken={generateQRToken}
-              generatedTokens={generatedTokens}
-              simulateQRAccess={simulateQRAccess}
-              formatDate={formatDate}
-            />
-          </TabsContent>
+        {/* Upload View */}
+        {currentView === 'upload' && (
+          <FileUpload 
+            onFileUpload={handleFileUpload}
+            uploadedFiles={uploadedFiles}
+            formatFileSize={formatFileSize}
+            formatDate={formatDate}
+            getCategoryIcon={getCategoryIcon}
+            getCategoryColor={getCategoryColor}
+          />
+        )}
 
-          {/* Audit Content */}
-          <TabsContent value="audit" className="mt-4 md:mt-6">
-            <AuditLogs auditLogs={auditLogs} formatDate={formatDate} />
-          </TabsContent>
-        </Tabs>
+        {/* Tokens View */}
+        {currentView === 'tokens' && (
+          <QRCodeGenerator
+            uploadedFiles={uploadedFiles}
+            selectedFile={selectedFile}
+            setSelectedFile={setSelectedFile}
+            accessLevel={accessLevel}
+            setAccessLevel={setAccessLevel}
+            generateQRToken={generateQRToken}
+            generatedTokens={generatedTokens}
+            simulateQRAccess={simulateQRAccess}
+            formatDate={formatDate}
+            appointments={appointments}
+          />
+        )}
+
+        {/* Audit Logs View */}
+        {currentView === 'audit' && (
+          <AuditLogs 
+            auditLogs={auditLogs}
+            formatDate={formatDate}
+          />
+        )}
+
+        {/* Hospital Dashboard View */}
+        {currentView === 'hospital' && (
+          <HospitalDashboard onViewHealthLock={() => setCurrentView('dashboard')} />
+        )}
       </div>
     </div>
   );
